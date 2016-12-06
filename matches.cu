@@ -1,4 +1,5 @@
 #include "constants.cu"
+#include "distances.cu"
 
 #include<vector>
 #include<iostream>
