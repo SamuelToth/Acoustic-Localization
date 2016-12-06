@@ -1,4 +1,4 @@
-#include "../paracompFinalConstants/constants.cu"
+#include "constants.cu"
 
 #include<vector>
 #include<iostream>
