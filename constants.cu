@@ -76,7 +76,7 @@ void GpuWaveMatchesToHost(GpuWaveMatches* h_gpuWaveMatches, GpuWaveMatches* d_gp
   
   //copy matches
   cudaMemcpy(h_gpuWaveMatches->matches, d_gpuWaveMatches->matches, sizeof(bool*) * h_gpuWaveMatches->matchesCount, cudaMemcpyDeviceToHost);
-  for (unsigned int i = 0; i < matchesCount; i++){
+  for (unsigned int i = 0; i < h_gpuWaveMatches->matchesCount; i++){
     cudaMemcpy(h_gpuWaveMatches->matches[i], d_gpuWaveMatches->matches[i], sizeof(bool) * h_gpuWaveMatches->widths[i] * h_gpuWaveMatches->heights[i], cudaMemcpyDeviceToHost);
   }
 }
