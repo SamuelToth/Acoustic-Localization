@@ -1,3 +1,6 @@
+#ifndef __lcl_matches
+#define __lcl_matches
+
 #include "constants.cu"
 
 #include<vector>
@@ -235,3 +238,5 @@ int main(){
 
   return 0;
 }
+
+#endif

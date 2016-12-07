@@ -1,3 +1,6 @@
+#ifndef __lcl_distances
+#define __lcl_distances
+
 #include "constants.cu"
 #include <math.h>
 
@@ -66,4 +69,4 @@ void findCoordinate(int numFFTPairs, Coordinate* micCoordinates,
   
   //go through list of matches of first mic, and take the join of the matches of the rest of the mics.
 
-  
+ #endif 

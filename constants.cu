@@ -1,3 +1,6 @@
+#ifndef __lcl_constants
+#define __lcl_constants
+
 //#include <thrust/device_vector.h>
 #include <cuda.h>
 #include <vector>
@@ -139,7 +142,7 @@ void WaveMatchesToGpu(const WaveMatches& matches, GpuWaveMatches* gpuMatches)
   gpuMatches->heightBatches = gpuHeightBatches;
   gpuMatches->heightBatchesCount = matches.heightBatches.size();
 }
-
+#endif
 
 
 

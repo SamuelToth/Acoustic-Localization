@@ -1,3 +1,6 @@
+#ifndef __lcl_FilterMatches
+#define __lcl_FilterMatches
+
 #include "constants.cu"
 
 #include<vector>
@@ -282,3 +285,4 @@ int main()
 {
 
 }
+#endif
