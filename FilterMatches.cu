@@ -8,6 +8,8 @@
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
 #include <thrust/extrema.h>
+#include <thrust/scan.h>
+
  
 __global__
 void buildHistogramForTriples(const GpuWaveMatches* allMatches,
@@ -89,7 +91,8 @@ void removeNonTripleMatches(GpuWaveMatches* allMatches,
  * the number of matches for each frequency
  */
  void filterForTriples(WaveMatches& allMatches,
-                      unsigned int** matchHistograms)
+                      unsigned int** matchHistograms,
+                      GpuWaveMatches* d_outMatches)
 {
   //move waveMatches to teh gpu
   GpuWaveMatches* gpuWaveMatches = NULL;
@@ -122,13 +125,75 @@ void removeNonTripleMatches(GpuWaveMatches* allMatches,
   //remove frequencies that dont match at least three times
   removeNonTripleMatches<<<gridSize, blockSize>>>(gpuWaveMatches, matchHistograms);
   
-  
-  //free gpu wave matches memory
-  freeGpuWaveMatches(gpuWaveMatches);
+  d_outMatches = gpuWaveMatches;
 }
 
 
 
+
+__global__
+void matrixToWavePair(bool* d_waveMatches,
+                      const unsigned int* const outputPositions,
+                      unsigned int matrixSize,
+                      unsigned int matrixWidth,
+                      unsigned int matrixHeight,
+                      WavePair* d_wavePairs,
+                      unsigned int pairCount)
+{
+  int thid = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+  int thidX = blockIdx.x *blockDim.x + threadIdx.x;
+  int thidY = blockIdx.x *blockDim.y + threadIdx.y;
+  if (thid >= matrixSize || thidX >= matrixWidth || thidY >= matrixHeight)
+  {
+    return;
+  }
+  
+  unsigned int position = matrixWidth * thidX + thidY;
+  if (d_waveMatches[position])
+  {
+    //TODO; ensure that waveidx1 will always be the width of the matrix
+    d_wavePairs[outputPositions[position]].waveIdx1 = thidX;
+    d_wavePairs[outputPositions[position]].waveIdx2 = thidY;
+  }
+}
+
+
+
+
+void findWavePairs(FftBatch* batches,
+              unsigned int batchCount,
+              GpuWaveMatches* d_waveMatches
+              WavePairContainer* wpContainers)
+{
+  GpuWaveMatches* h_waveMatches;
+  GpuWaveMatchesToHost(h_waveMatches, d_waveMatches);
+  
+  for (unsigned int i = 0; i < h_waveMatches->matchesCount i++)
+  {
+    //determine the number of wavePairs and their positions in the output array
+    unsigned int matrixSize = waveMatches->widths[i] * waveMatches->heights[i];
+    bool* scanResult = (bool*)malloc(sizeof(bool) * matrixSize);
+    thrust::exclusive_scan(h_waveMatches->matches[i], h_waveMatches->matches[i] + matrixSize, scanResult);
+    unsigned int total = scanResult[matrixSize - 1] + h_waveMatches->matches[i][matrixSize - 1];
+    
+    //create wavePairContainer
+    wpContainers[i].wavePairCount = total;
+    wpContainers[i].firstFFT = h_waveMatches.widthBatches[i];
+    wpContainers[i].secondFFT = h_waveMatches.heightBatches[i];
+    wpContainers[i].wavePairArray = (WavePair*)malloc(sizeof(WavePair) * total);
+    
+    //populate teh wavePairArray
+    WavePair* d_wavePairs;
+    cudaMalloc(&d_wavePairs, sizeof(WavePair) * total);
+    
+    
+
+    free(scanResult);
+    cudaFree(d_wavePairs);
+    
+  }
+  //TODO: free h_waveMatches;
+}
 
 
 /*filterMatches: removes all invalid matches. Returns valid matches in wave pair
@@ -148,7 +213,7 @@ void removeNonTripleMatches(GpuWaveMatches* allMatches,
  */
 void filterMatches(FftBatch* batches,
                    unsigned int batchCount,
-                   const WaveMatches* const allMatches,
+                   WaveMatches* allMatches,
                    WavePairContainer* wavePairContainers,
                    unsigned int containerCount)
 {
@@ -163,7 +228,13 @@ void filterMatches(FftBatch* batches,
     d_matchHistograms[i] = d_matchHistogram;
   }
   
+  GpuWaveMatches* d_waveMatches;
+  filterForTriples(*allMatches, d_matchHistograms, d_waveMatches);
+  
+  
 
+  //free device waveMatches
+  freeGpuWaveMatches(d_waveMatches);
   
   //free histogram memory
   for (unsigned int i = 0; i < batchCount; i++)

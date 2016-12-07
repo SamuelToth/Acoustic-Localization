@@ -64,6 +64,23 @@ struct GpuWaveMatches {
   
 };
 
+void GpuWaveMatchesToHost(GpuWaveMatches* h_gpuWaveMatches, GpuWaveMatches* d_gpuWaveMatches)
+{
+  h_gpuWaveMatches = (GpuWaveMatches*)malloc(sizeof(GpuWaveMatches));
+  cudaMemcpy(h_gpuWaveMatches, d_gpuWaveMatches, sizeof(GpuWaveMatches), cudaMemcpyDeviceToHost);
+  
+  cudaMemcpy(h_gpuWaveMatches->widths, d_gpuWaveMatches->widths, sizeof(unsigned int) * h_gpuWaveMatches->widthsCount, cudaMemcpyDeviceToHost);
+  cudaMemcpy(h_gpuWaveMatches->heights, d_gpuWaveMatches->heights, sizeof(unsigned int) * h_gpuWaveMatches->heightsCount, cudaMemcpyDeviceToHost);
+  cudaMemcpy(h_gpuWaveMatches->widthBatches, d_gpuWaveMatches->widthBatches, sizeof(int) * h_gpuWaveMatches->widthBatchesCount, cudaMemcpyDeviceToHost);
+  cudaMemcpy(h_gpuWaveMatches->heightBatches, d_gpuWaveMatches->heightBatches, sizeof(int) * h_gpuWaveMatches->heightBatchesCount, cudaMemcpyDeviceToHost);
+  
+  //copy matches
+  cudaMemcpy(h_gpuWaveMatches->matches, d_gpuWaveMatches->matches, sizeof(bool*) * h_gpuWaveMatches->matchesCount, cudaMemcpyDeviceToHost);
+  for (unsigned int i = 0; i < matchesCount; i++){
+    cudaMemcpy(h_gpuWaveMatches->matches[i], d_gpuWaveMatches->matches[i], sizeof(bool) * h_gpuWaveMatches->widths[i] * h_gpuWaveMatches->heights[i], cudaMemcpyDeviceToHost);
+  }
+}
+
 void freeGpuWaveMatches(GpuWaveMatches* gpuMatches)
 {
   for (unsigned int i = 0; i < gpuMatches->matchesCount; i++)
