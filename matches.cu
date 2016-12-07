@@ -30,16 +30,16 @@ void findMatchesSeq(FftResult* batch1,
   
   //Find all matching waves between two sources
 //  FftResult wave1 = batch1[absoluteIndex];
-  for (unsigned int i = 0; i < batch2Count; i++) {
+  for (unsigned int i = 0; i < batch1Count; i++) {
     //find the waves are within an acceptable range there is a match
-    for (unsigned int k=0; k<batch1Count; k++) {
+    for (unsigned int k=0; k<batch2Count; k++) {
       if (abs(batch1[k].frequency - batch2[i].frequency) <= FREQUENCY_RANGE){
         //create wavePair
-        matchMatrix[i + k] = true;
+        matchMatrix[i * batch2Count + k] = true;
         //printf("i: %i j: %i\n", absoluteIndex, i);
       }
       else { //else not a match
-        matchMatrix[i + k] = false;
+        matchMatrix[i * batch2Count + k] = false;
       }
     }
   }
@@ -89,17 +89,29 @@ void findMatches2d(FftResult* batch1,
       
   //init matchMatrix to false
   //for (unsigned int i = 0; i < batch2Count; i++) {
-    matchMatrix[absoluteIndex] = false;
+  //matchMatrix[absoluteIndex] = false;
   //}
   __syncthreads();
   
   int crossBlockXIndex = blockIdx.x * blockDim.x + threadIdx.x;
   int crossBlockYIndex = blockIdx.y * blockDim.y + threadIdx.y;
-  
-  if (abs(batch1[crossBlockXIndex].frequency - batch2[crossBlockYIndex].frequency) <= FREQUENCY_RANGE) {
-    matchMatrix[absoluteIndex] = true;
+
+  //if(absoluteIndex<batch1Count)
+  /*
+  for(int i=0; i<batch2Count; i++){
+    if(abs(batch1[absoluteIndex].frequency-batch2[i].frequency) <= FREQUENCY_RANGE){
+      matchMatrix[absoluteIndex] = true;
+    } else {
+      matchMatrix[absoluteIndex] = false;
+    }
+  }*/
+  if (crossBlockXIndex < batch1Count && crossBlockYIndex < batch2Count){
+    if (abs(batch1[crossBlockXIndex].frequency - batch2[crossBlockYIndex].frequency) <= FREQUENCY_RANGE) {
+      matchMatrix[absoluteIndex] = true;
+    } else {
+      matchMatrix[absoluteIndex] = false;
+    }
   }
-  
 }
 
 
@@ -144,8 +156,8 @@ WaveMatches findAllMatches(FftBatch* batches, unsigned int batchCount) {
       int blocks = bigBatch.size / MAX_THREADS + 1;
       dim3 bDim(bigBatch.size, littleBatch.size, 0);
       //findMatches2d<<<threads, bDim>>>(d_batch1, bigBatch.size, 
-                                       //d_batch2, littleBatch.size, 
-                                       //d_matchMatrix);
+        //                               d_batch2, littleBatch.size, 
+          //                             d_matchMatrix);
       findMatchesSeq(bigBatch.fftResults, bigBatch.size, littleBatch.fftResults,littleBatch.size, h_matchMatrix);
       
       //copy matchMatrix to host and store in return vector
@@ -154,6 +166,7 @@ WaveMatches findAllMatches(FftBatch* batches, unsigned int batchCount) {
       //cudaMemcpy(matchMatrix, d_matchMatrix, sizeof(bool) * bigBatch.size *littleBatch.size,cudaMemcpyDeviceToHost);
                  
       matches.matches.push_back(h_matchMatrix);
+      //matches.matches.push_back(matchMatrix);
       matches.widths.push_back(bigBatch.size);
       matches.heights.push_back(littleBatch.size);
        

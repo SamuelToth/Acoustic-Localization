@@ -1,4 +1,4 @@
-#include "constants.cu"
+//#include "constants.cu"
 #include <math.h>
 
 //numFFTPairs is number of mics which have a set of matches
