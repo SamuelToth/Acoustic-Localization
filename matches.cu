@@ -7,7 +7,7 @@
 
 
 #define MAX_THREADS 1024
-#define FREQUENCY_RANGE 4
+#define FREQUENCY_RANGE 0
 
 
 /**findMatches
@@ -33,7 +33,9 @@ void findMatchesSeq(FftResult* batch1,
   for (unsigned int i = 0; i < batch1Count; i++) {
     //find the waves are within an acceptable range there is a match
     for (unsigned int k=0; k<batch2Count; k++) {
-      if (abs(batch1[k].frequency - batch2[i].frequency) <= FREQUENCY_RANGE){
+        //std::cout<<"FREQUENCY_RANGE: "<<FREQUENCY_RANGE<<std::endl;
+        //std::cout<<"abs(batch1["<<i<<"].frequency-batch2["<<k<<"].frequency): "<<batch1-batch2<<std::endl;
+      if (abs(batch1[i].frequency - batch2[k].frequency) <= FREQUENCY_RANGE){
         //create wavePair
         matchMatrix[i * batch2Count + k] = true;
         //printf("i: %i j: %i\n", absoluteIndex, i);
@@ -55,7 +57,7 @@ void findMatches(FftResult* batch1,
                  
   //get threads position and return early if out of bounds
   int absoluteIndex = blockIdx.x *blockDim.x + threadIdx.x;  
-  if (absoluteIndex > batch1Count) {
+  if (absoluteIndex >= batch1Count) {
     return;
   }
   
@@ -71,7 +73,7 @@ void findMatches(FftResult* batch1,
     //find the waves are within an acceptable range there is a match
     if (abs(wave1.frequency - batch2[i].frequency) <= FREQUENCY_RANGE){
       //create wavePair
-      matchMatrix[absoluteIndex * batch1Count + i] = true;
+      matchMatrix[absoluteIndex * batch2Count + i] = true;
       //printf("i: %i j: %i\n", absoluteIndex, i);
     }
   }
@@ -106,11 +108,19 @@ void findMatches2d(FftResult* batch1,
     }
   }*/
   if (crossBlockXIndex < batch1Count && crossBlockYIndex < batch2Count){
+//    printf("thread %i: xidx: %i yidx: %i | %f,%f\n", absoluteIndex, crossBlockXIndex, crossBlockYIndex,
+  //         batch1[crossBlockXIndex].frequency, batch2[crossBlockYIndex].frequency);
     if (abs(batch1[crossBlockXIndex].frequency - batch2[crossBlockYIndex].frequency) <= FREQUENCY_RANGE) {
-      matchMatrix[absoluteIndex] = true;
+      //matchMatrix[absoluteIndex] = true;
+      matchMatrix[crossBlockXIndex * batch2Count + crossBlockYIndex] = true;
     } else {
-      matchMatrix[absoluteIndex] = false;
+      //matchMatrix[absoluteIndex] = false;
+      matchMatrix[crossBlockXIndex * batch2Count + crossBlockYIndex] = false;
     }
+  }
+  if(absoluteIndex == 1){
+    //printf("thread 1: xidx: %i yidx: %i\n", crossBlockXIndex, crossBlockYIndex);
+    //std::cout<<"thread 1: xidx: "<<crossBlockXIndex<<" yidx: "<<crossBlockYIndex<<std::endl;
   }
 }
 
@@ -145,28 +155,31 @@ WaveMatches findAllMatches(FftBatch* batches, unsigned int batchCount) {
       FftResult* d_batch2;
       cudaMalloc(&d_batch1, sizeof(FftResult) * bigBatch.size);
       cudaMalloc(&d_batch2, sizeof(FftResult) * littleBatch.size);
+      printf("Device Variable Copying: \t%s\n", cudaGetErrorString(cudaGetLastError()));
       
       cudaMemcpy(d_batch1, bigBatch.fftResults, 
                  sizeof(FftResult) * bigBatch.size, cudaMemcpyHostToDevice);
       cudaMemcpy(d_batch2, littleBatch.fftResults, 
                  sizeof(FftResult) * littleBatch.size, cudaMemcpyHostToDevice);
-      
+      printf("Device Variable Copying: \t%s\n", cudaGetErrorString(cudaGetLastError()));
       //call find matches kernal
       int threads = bigBatch.size % MAX_THREADS;
       int blocks = bigBatch.size / MAX_THREADS + 1;
-      dim3 bDim(bigBatch.size, littleBatch.size, 0);
-      //findMatches2d<<<threads, bDim>>>(d_batch1, bigBatch.size, 
-        //                               d_batch2, littleBatch.size, 
-          //                             d_matchMatrix);
-      findMatchesSeq(bigBatch.fftResults, bigBatch.size, littleBatch.fftResults,littleBatch.size, h_matchMatrix);
+      dim3 bDim(bigBatch.size, littleBatch.size);
+      findMatches2d<<<threads, bDim>>>(d_batch1, bigBatch.size, 
+                                       d_batch2, littleBatch.size, 
+                                       d_matchMatrix);
+      //findMatchesSeq(bigBatch.fftResults, bigBatch.size, littleBatch.fftResults,littleBatch.size, h_matchMatrix);
+      printf("Device Variable Copying: \t%s\n", cudaGetErrorString(cudaGetLastError()));
       
       //copy matchMatrix to host and store in return vector
-      //bool* matchMatrix = (bool*)malloc(sizeof(bool) * bigBatch.size * littleBatch.size);
+      bool* matchMatrix = (bool*)malloc(sizeof(bool) * bigBatch.size * littleBatch.size);
       
-      //cudaMemcpy(matchMatrix, d_matchMatrix, sizeof(bool) * bigBatch.size *littleBatch.size,cudaMemcpyDeviceToHost);
+      cudaMemcpy(matchMatrix, d_matchMatrix, sizeof(bool) * bigBatch.size *littleBatch.size,cudaMemcpyDeviceToHost);
+      printf("Device Variable Copying: \t%s\n", cudaGetErrorString(cudaGetLastError()));
                  
-      matches.matches.push_back(h_matchMatrix);
-      //matches.matches.push_back(matchMatrix);
+      //matches.matches.push_back(h_matchMatrix);
+      matches.matches.push_back(matchMatrix);
       matches.widths.push_back(bigBatch.size);
       matches.heights.push_back(littleBatch.size);
       matches.widthBatches.push_back(i);
@@ -238,10 +251,11 @@ int main(){
     
     for (unsigned int j = 0; j < matches.widths[i]; j++) {
       for (unsigned int k = 0; k < matches.heights[i]; k++) {
-        if (matches.matches[matches.widths[i] * j + k]){
-          std::cout<<"("<<j<<","<<k<<")"<<std::endl;
-        }
-      
+        //std::cout<<matches.matches[i][j*matches.heights[i]+k]<<std::endl;;
+        if (matches.matches[i][j*matches.heights[i] + k]){
+          std::cout<<"["<<matches.widthBatches[i]<<","<<matches.heightBatches[i]<<"]"<<"("<<j<<","<<k<<")"<<std::endl;
+          //std::cout<<"["<<matches.matches[<<","<<matches.heightBatches[i]<<"]"<<"("<<j<<","<<k<<")"<<std::endl;
+        } 
       }
     }
   }
