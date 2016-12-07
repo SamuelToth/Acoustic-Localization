@@ -130,13 +130,13 @@ WaveMatches findAllMatches(FftBatch* batches, unsigned int batchCount) {
       FftBatch bigBatch;
       FftBatch littleBatch;
       
-      if (batches[i].size > batches[j].size) {
-        bigBatch = batches[i];
-        littleBatch = batches[j];
-      } else {
-        bigBatch = batches[j];
-        littleBatch = batches[i];
-      }
+      //if (batches[i].size > batches[j].size) {
+      bigBatch = batches[i];
+      littleBatch = batches[j];
+      //} else {
+      //  bigBatch = batches[j];
+      //  littleBatch = batches[i];
+     // }
       
       bool* h_matchMatrix = (bool *)malloc(bigBatch.size * littleBatch.size * sizeof(bool));
 
@@ -169,6 +169,8 @@ WaveMatches findAllMatches(FftBatch* batches, unsigned int batchCount) {
       //matches.matches.push_back(matchMatrix);
       matches.widths.push_back(bigBatch.size);
       matches.heights.push_back(littleBatch.size);
+      matches.widthBatches.push_back(i);
+      matches.heightBatches.push_back(j);
        
             
       //free memory
