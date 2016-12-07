@@ -173,6 +173,9 @@ WaveMatches findAllMatches(FftBatch* batches, unsigned int batchCount) {
   return matches;
 }
 
+
+
+/*
 int main(){
 
   FftBatch batch1;
@@ -237,6 +240,6 @@ int main(){
 
 
   return 0;
-}
+}*/
 
 #endif

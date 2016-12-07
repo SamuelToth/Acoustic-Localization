@@ -281,8 +281,8 @@ void filterMatches(FftBatch* batches,
 }
 
 
-int main()
+/*int main()
 {
 
-}
+}*/
 #endif
