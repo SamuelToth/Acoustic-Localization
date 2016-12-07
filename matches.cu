@@ -1,3 +1,6 @@
+#ifndef __lcl_matches
+#define __lcl_matches
+
 #include "constants.cu"
 #include "distances.cu"
 
@@ -197,6 +200,9 @@ WaveMatches findAllMatches(FftBatch* batches, unsigned int batchCount) {
   return matches;
 }
 
+
+
+/*
 int main(){
 
   FftBatch batch1;
@@ -262,4 +268,6 @@ int main(){
 
 
   return 0;
-}
+}*/
+
+#endif

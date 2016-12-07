@@ -1,3 +1,6 @@
+#ifndef __lcl_FilterMatches
+#define __lcl_FilterMatches
+
 #include "constants.cu"
 
 #include<vector>
@@ -133,7 +136,7 @@ void removeNonTripleMatches(GpuWaveMatches* allMatches,
 
 __global__
 void matrixToWavePair(bool* d_waveMatches,
-                      const unsigned int* const outputPositions,
+                      const int* const outputPositions,
                       unsigned int matrixSize,
                       unsigned int matrixWidth,
                       unsigned int matrixHeight,
@@ -162,31 +165,64 @@ void matrixToWavePair(bool* d_waveMatches,
 
 void findWavePairs(FftBatch* batches,
               unsigned int batchCount,
-              GpuWaveMatches* d_waveMatches
+              GpuWaveMatches* d_waveMatches,
               WavePairContainer* wpContainers)
 {
-  GpuWaveMatches* h_waveMatches;
+  GpuWaveMatches* h_waveMatches = NULL;
   GpuWaveMatchesToHost(h_waveMatches, d_waveMatches);
   
-  for (unsigned int i = 0; i < h_waveMatches->matchesCount i++)
+  for (unsigned int i = 0; i < h_waveMatches->matchesCount; i++)
   {
     //determine the number of wavePairs and their positions in the output array
-    unsigned int matrixSize = waveMatches->widths[i] * waveMatches->heights[i];
-    bool* scanResult = (bool*)malloc(sizeof(bool) * matrixSize);
+    unsigned int matrixSize = h_waveMatches->widths[i] * h_waveMatches->heights[i];
+    int* scanResult = (int*)malloc(sizeof(int) * matrixSize);
     thrust::exclusive_scan(h_waveMatches->matches[i], h_waveMatches->matches[i] + matrixSize, scanResult);
     unsigned int total = scanResult[matrixSize - 1] + h_waveMatches->matches[i][matrixSize - 1];
+    int* d_scanResult;
+    cudaMalloc(&d_scanResult, sizeof(int) * matrixSize);
+    cudaMemcpy(d_scanResult, scanResult, sizeof(int) * matrixSize, cudaMemcpyHostToDevice);
     
     //create wavePairContainer
     wpContainers[i].wavePairCount = total;
-    wpContainers[i].firstFFT = h_waveMatches.widthBatches[i];
-    wpContainers[i].secondFFT = h_waveMatches.heightBatches[i];
+    wpContainers[i].firstFFT = h_waveMatches->widthBatches[i];
+    wpContainers[i].secondFFT = h_waveMatches->heightBatches[i];
     wpContainers[i].wavePairArray = (WavePair*)malloc(sizeof(WavePair) * total);
     
     //populate teh wavePairArray
     WavePair* d_wavePairs;
     cudaMalloc(&d_wavePairs, sizeof(WavePair) * total);
     
+    //determine kernel dimentions
+    int blockSizeIntX;
+    int blockSizeIntY;
+    int gridSizeInt;
+    const int maxBlockSize = 512;
+    double widthHeightRatio = h_waveMatches->widths[i]/h_waveMatches->heights[i];
+    if (widthHeightRatio > 1)
+    {
+      blockSizeIntY = maxBlockSize / widthHeightRatio;
+      blockSizeIntX = maxBlockSize - blockSizeIntY;
+    }
+    else
+    {
+      blockSizeIntX = maxBlockSize * widthHeightRatio;    
+      blockSizeIntY = maxBlockSize - blockSizeIntX;
+    }
+    gridSizeInt = matrixSize / maxBlockSize + 1;
     
+    dim3 blockSize(blockSizeIntX, blockSizeIntY);
+    dim3 gridSize(gridSizeInt);    
+    
+    //prodece wavePairs
+    matrixToWavePair<<<gridSize, blockSize>>>(d_waveMatches->matches[i],
+                      d_scanResult,
+                      matrixSize,
+                      h_waveMatches->widths[i],
+                      h_waveMatches->heights[i],
+                      d_wavePairs,
+                      total);
+    cudaMemcpy(wpContainers[i].wavePairArray, d_wavePairs, sizeof(WavePair) * total, cudaMemcpyDeviceToHost);             
+                  
 
     free(scanResult);
     cudaFree(d_wavePairs);
@@ -245,7 +281,8 @@ void filterMatches(FftBatch* batches,
 }
 
 
-int main()
+/*int main()
 {
 
-}
+}*/
+#endif
