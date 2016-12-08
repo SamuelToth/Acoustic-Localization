@@ -143,16 +143,18 @@ void removeNonTripleMatchesSeq(GpuWaveMatches* allMatches,
   GpuWaveMatches* gpuWaveMatches = NULL;
   WaveMatchesToGpu(allMatches, gpuWaveMatches);
   
-  printf(";alskdjf;aslkdjfa;lskdjf");
+  printf(";alskdjf;aslkdjfa;lskdjf\n");fflush(NULL);
   
   //determine kernel dimentions
   const int maxThreadsPerBlock = 512;
   unsigned int* maxWidth = thrust::max_element(&allMatches.widths[0], &allMatches.widths[0] + allMatches.widths.size());
   unsigned int* maxHeight = thrust::max_element(&allMatches.heights[0], &allMatches.heights[0] + allMatches.heights.size());
   double widthHeightRatio = *maxWidth / *maxHeight;
-  unsigned int blockSizeIntX = allMatches.matches.size() % maxThreadsPerBlock;
-  unsigned int blockSizeIntY = (maxThreadsPerBlock - blockSizeIntX) * widthHeightRatio;
-  unsigned int blockSizeIntZ = blockSizeIntY;
+  printf(";alskdjf;aslkdjfa;lskdjf\n");fflush(NULL);
+  unsigned int blockSizeIntX = 10;//allMatches.matches.size() % maxThreadsPerBlock;
+  unsigned int blockSizeIntY = 10;//(maxThreadsPerBlock - blockSizeIntX) * widthHeightRatio;
+  unsigned int blockSizeIntZ = 10;//blockSizeIntY;
+  printf(";alskdjf;aslkdjfa;lskdjf\n");fflush(NULL);
   if (widthHeightRatio > 1)
   {
     blockSizeIntY = (maxThreadsPerBlock - blockSizeIntX) / widthHeightRatio;
@@ -161,13 +163,15 @@ void removeNonTripleMatchesSeq(GpuWaveMatches* allMatches,
   {
     blockSizeIntY = (maxThreadsPerBlock - blockSizeIntX) * widthHeightRatio;
   }
-  blockSizeIntZ = (maxThreadsPerBlock - blockSizeIntX) - blockSizeIntY;
+  printf(";alskdjf;aslkdjfa;lskdjf\n");fflush(NULL);
+  blockSizeIntZ = 10;//(maxThreadsPerBlock - blockSizeIntX) - blockSizeIntY;
   unsigned int gridSizeInt = (*maxWidth * *maxHeight * allMatches.matches.size()) / (blockSizeIntY * blockSizeIntX * blockSizeIntZ) + 1;
+  printf(";alskdjf;aslkdjfa;lskdjf\n");fflush(NULL);
   dim3 blockSize(blockSizeIntX, blockSizeIntY, blockSizeIntZ);
   dim3 gridSize(gridSizeInt);
   
   
-  printf("!!!!!!");
+  printf("!!!!!!");fflush(NULL);
   
   //fill histograms
   buildHistogramForTriples<<<gridSize, blockSize>>>(gpuWaveMatches,matchHistograms);

@@ -26,7 +26,7 @@ MicData generateData()
 {
   //create array of batches(microphones)
   int numberOfBatches = -1;
-  std::cout<<"Number of microphones: ";
+  std::cout<<"Number of microphones(must be at least 3): ";
   std::cin>>numberOfBatches;
 
   cufftDoubleComplex** micDataArray = (cufftDoubleComplex**)malloc(sizeof(cufftDoubleComplex*)*numberOfBatches);
