@@ -7,6 +7,7 @@
 #include "constants.cu"
 #include "matches.cu"
 #include "FilterMatches.cu"
+#include "fftWork.cu"
 
 #include <cufft.h>
 #include <cufftXt.h>
