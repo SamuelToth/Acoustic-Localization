@@ -7,6 +7,12 @@
 
 typedef float decimal;
 
+struct MicData {
+  cufftDoubleComplex** micData;
+  int* waveLengths;
+  int numberOfBatches;
+};
+
 struct Distances {
   decimal* distances;
 };

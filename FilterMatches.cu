@@ -57,7 +57,7 @@ void buildHistogramForTriples(const GpuWaveMatches* allMatches,
 
 void buildHistogramForTriplesSeq(const GpuWaveMatches* allMatches,
                               unsigned int** matchHistograms)
-{/*
+{
   for(int count=0; count<allMatches->matchesCount; count++){
     for(int x=0; x<allMatches->widths[count]; x++){
       for(int y=0; y<allMatches->heights[count]; y++){
@@ -69,7 +69,7 @@ void buildHistogramForTriplesSeq(const GpuWaveMatches* allMatches,
         matchHistograms[widthBatchNum][x] += matrixVal;
       }
     }
-  }*/
+  }
   return;
 }
 
