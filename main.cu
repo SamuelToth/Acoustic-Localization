@@ -9,6 +9,7 @@
 #include "FilterMatches.cu"
 #include "fftWork.cu"
 
+#include <stdio.h>
 #include <cufft.h>
 #include <cufftXt.h>
 #include <cufftw.h>
@@ -116,7 +117,7 @@ int main() {
   
   GpuWaveMatches* d_gpuWaveMatches;
   WaveMatchesToGpu(matches, d_gpuWaveMatches);
-  
+  printf("Has not died yet\r\n");fflush(NULL);
   findWavePairs(fftBatches,
               h_micData.numberOfBatches,
               d_gpuWaveMatches,

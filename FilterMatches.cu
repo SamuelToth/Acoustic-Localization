@@ -237,7 +237,12 @@ void findWavePairs(FftBatch* batches,
               WavePairContainer* wpContainers)
 {
   GpuWaveMatches* h_waveMatches = NULL;
+  
+  printf("wp0\r\n");fflush(NULL);
+  
   GpuWaveMatchesToHost(h_waveMatches, d_waveMatches);
+  
+  printf("wp1\r\n"); fflush(NULL);
   
   for (unsigned int i = 0; i < h_waveMatches->matchesCount; i++)
   {
@@ -249,6 +254,8 @@ void findWavePairs(FftBatch* batches,
     int* d_scanResult;
     cudaMalloc(&d_scanResult, sizeof(int) * matrixSize);
     cudaMemcpy(d_scanResult, scanResult, sizeof(int) * matrixSize, cudaMemcpyHostToDevice);
+    
+    printf("wp2\r\n"); fflush(NULL);
     
     //create wavePairContainer
     wpContainers[i].wavePairCount = total;
@@ -266,6 +273,9 @@ void findWavePairs(FftBatch* batches,
     int gridSizeInt;
     const int maxBlockSize = 512;
     double widthHeightRatio = h_waveMatches->widths[i]/h_waveMatches->heights[i];
+    
+    printf("wp3\r\n");fflush(NULL);
+    
     if (widthHeightRatio > 1)
     {
       blockSizeIntY = maxBlockSize / widthHeightRatio;
@@ -278,6 +288,8 @@ void findWavePairs(FftBatch* batches,
     }
     gridSizeInt = matrixSize / maxBlockSize + 1;
     
+    printf("wp4\r\n");fflush(NULL);
+    
     dim3 blockSize(blockSizeIntX, blockSizeIntY);
     dim3 gridSize(gridSizeInt);    
     
@@ -289,11 +301,16 @@ void findWavePairs(FftBatch* batches,
                       h_waveMatches->heights[i],
                       d_wavePairs,
                       total);
+                      
+    printf("wp5\r\n");fflush(NULL);
+    
     cudaMemcpy(wpContainers[i].wavePairArray, d_wavePairs, sizeof(WavePair) * total, cudaMemcpyDeviceToHost);             
                   
 
     free(scanResult);
     cudaFree(d_wavePairs);
+    
+    printf("wp6\r\n");fflush(NULL);
     
   }
   //TODO: free h_waveMatches;
