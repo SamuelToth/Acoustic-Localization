@@ -143,6 +143,8 @@ void removeNonTripleMatchesSeq(GpuWaveMatches* allMatches,
   GpuWaveMatches* gpuWaveMatches = NULL;
   WaveMatchesToGpu(allMatches, gpuWaveMatches);
   
+  printf(";alskdjf;aslkdjfa;lskdjf");
+  
   //determine kernel dimentions
   const int maxThreadsPerBlock = 512;
   unsigned int* maxWidth = thrust::max_element(&allMatches.widths[0], &allMatches.widths[0] + allMatches.widths.size());
@@ -163,6 +165,9 @@ void removeNonTripleMatchesSeq(GpuWaveMatches* allMatches,
   unsigned int gridSizeInt = (*maxWidth * *maxHeight * allMatches.matches.size()) / (blockSizeIntY * blockSizeIntX * blockSizeIntZ) + 1;
   dim3 blockSize(blockSizeIntX, blockSizeIntY, blockSizeIntZ);
   dim3 gridSize(gridSizeInt);
+  
+  
+  printf("!!!!!!");
   
   //fill histograms
   buildHistogramForTriples<<<gridSize, blockSize>>>(gpuWaveMatches,matchHistograms);
