@@ -13,7 +13,15 @@
 #include <thrust/extrema.h>
 #include <thrust/scan.h>
 
- 
+/*
+__global__ buildHistogramForTriples(+Seq)
+__global__ removeNonTripleMatches(+Seq)
+filterForTriples
+__global__ matrixToWavePair(+Seq)
+findWavePairs
+filterMatches
+*/
+
 __global__
 void buildHistogramForTriples(const GpuWaveMatches* allMatches,
                               unsigned int** matchHistograms)
@@ -47,6 +55,23 @@ void buildHistogramForTriples(const GpuWaveMatches* allMatches,
   atomicAdd(&matchHistograms[heightBatchNum][heightIdx], matrixVal);
 }
 
+void buildHistogramForTriplesSeq(const GpuWaveMatches* allMatches,
+                              unsigned int** matchHistograms)
+{/*
+  for(int count=0; count<allMatches->matchesCount; count++){
+    for(int x=0; x<allMatches->widths[count]; x++){
+      for(int y=0; y<allMatches->heights[count]; y++){
+        unsigned int flatMatrixPosition = allMatches->widths[count] * x + y;
+        int widthBatchNum = allMatches->widthBatches[count];
+        int heightBatchNum = allMatches->heightBatches[count];
+        unsigned int matrixVal = (unsigned int)allMatches->matches[count][flatMatrixPosition];
+        matchHistograms[heightBatchNum][y] += matrixVal;
+        matchHistograms[widthBatchNum][x] += matrixVal;
+      }
+    }
+  }*/
+  return;
+}
 
 __global__
 void removeNonTripleMatches(GpuWaveMatches* allMatches,
@@ -82,6 +107,23 @@ void removeNonTripleMatches(GpuWaveMatches* allMatches,
 }
 
 
+void removeNonTripleMatchesSeq(GpuWaveMatches* allMatches,
+                               const unsigned int * const * const matchHistograms)
+{
+  for(int count=0; count<allMatches->matchesCount; count++){
+    for(int x=0; x<allMatches->widths[count]; x++){
+      for(int y=0; y<allMatches->heights[count]; y++){
+        unsigned int flatMatrixPosition = allMatches->widths[count] * x + y;
+        int widthBatchNum = allMatches->widthBatches[count];
+        int heightBatchNum = allMatches->heightBatches[count];
+        if(matchHistograms[widthBatchNum][x] < 3 || matchHistograms[heightBatchNum][y] <3){
+          allMatches->matches[count][flatMatrixPosition] = 0;
+        }
+      }
+    }
+  }
+  return;
+}
 
 /*filterForTriples
  *Removes all matches with frequencies that aren't found across
@@ -160,7 +202,24 @@ void matrixToWavePair(bool* d_waveMatches,
   }
 }
 
-
+void matrixToWavePairSeq(bool* h_waveMatches,
+                         const int* const outputPositions,
+                         unsigned int matrixSize,
+                         unsigned int matrixWidth,
+                         unsigned int matrixHeight,
+                         WavePair* h_wavePairs,
+                         unsigned int pairCount)
+{
+  for (int x=0; x<matrixWidth; x++){
+    for (int y=0; y<matrixHeight; y++){
+      if(h_waveMatches[matrixWidth*x+y]){
+        h_wavePairs[matrixWidth*x+y].waveIdx1=x;
+        h_wavePairs[matrixWidth*x+y].waveIdx2=y;
+      }
+    }
+  }
+  return;
+}
 
 
 void findWavePairs(FftBatch* batches,
