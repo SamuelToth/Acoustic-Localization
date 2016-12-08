@@ -61,7 +61,7 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   cudaMemcpy(data, h_data, sizeof(cufftDoubleComplex)*NX*BATCH, cudaMemcpyHostToDevice);
   cudaMalloc((void**)&outData, sizeof(cufftDoubleComplex)*(NX / 2 + 1)*BATCH);
   
-
+  printf("1\r\n");
   if (cudaGetLastError() != cudaSuccess){
     fprintf(stderr, "Cuda error: Failed to allocate\n"); 
     return 1;
@@ -86,11 +86,14 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   int outputSize = (NX / 2 + 1)*BATCH;
   
   //cudaMemcpy(h_data, outData, sizeof(cufftDoubleComplex)*(NX / 2 + 1)*BATCH, cudaMemcpyDeviceToHost);
-  thrust::host_vector<cufftDoubleComplex> rawFft(outData, outData + outputSize);
+  thrust::device_vector<cufftDoubleComplex> d_rawFft(outData, outData + outputSize);
+  thrust::host_vector<cufftDoubleComplex> rawFft(d_rawFft);
   
-
+  
   thrust::host_vector<double> fftReals(outputSize);
   //double* fftReals = (double*)malloc(sizeof(double) * outputSize);
+ 
+  printf("2\r\n");
  
   double rawSum = 0;
   for (unsigned int i = 0; i < outputSize; i++)
@@ -98,6 +101,8 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
     rawSum += rawFft[i].x;
     fftReals[i] = rawFft[i].x;
   }
+  
+  printf("3\r\n");
   double rawAverage = rawSum / outputSize;
   
   thrust::device_vector<double> d_fftReals(fftReals);
@@ -107,19 +112,30 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   cudaMalloc(&d_validFrequencies, sizeof(bool) * outputSize);
   
 
-  
+  printf("4\r\n");
   
   int blockSizeInt = 1024;
   int gridSizeInt = outputSize / 1024 + 1;
-  
   trueIfGreater<<<gridSizeInt, blockSizeInt>>>(d_validFrequencies, thrust::raw_pointer_cast(d_fftReals.data()), outputSize, rawAverage * 5);
   
+  printf("5 %i\r\n", outputSize);
+  
+  bool* h_validFrequencies = (bool*) malloc(sizeof(bool) * outputSize); 
+  cudaMemcpy(h_validFrequencies, d_validFrequencies, sizeof(bool) * outputSize, cudaMemcpyDeviceToHost);
+
+
+
   int* goodIndexes = (int*)malloc(sizeof(int) * outputSize);
-  thrust::exclusive_scan(d_validFrequencies, d_validFrequencies + outputSize, goodIndexes);
-  int goodVals = thrust::reduce(d_validFrequencies, d_validFrequencies + outputSize);
+  thrust::exclusive_scan(h_validFrequencies, h_validFrequencies + outputSize - 1, goodIndexes);
+
+  
+  int goodVals = thrust::reduce(h_validFrequencies, h_validFrequencies + outputSize - 1);
+
   
   FftResult* d_fftResults;
   cudaMalloc(&d_fftResults, sizeof(FftResult) * goodVals);
+  
+    printf("6\r\n");
   
   batch->size = goodVals;
   batch->fftResults = (FftResult*)malloc(sizeof(FftResult) * goodVals);
@@ -128,23 +144,15 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   cudaMalloc(&d_goodIndexes, sizeof(int) * outputSize);
   cudaMemcpy(d_goodIndexes, goodIndexes, sizeof(int) * outputSize, cudaMemcpyHostToDevice);
   
+  printf("7\r\n");
+  
   getFftResults<<<gridSizeInt, blockSizeInt>>>(outputSize, d_goodIndexes,d_validFrequencies, d_fftResults, outData);
   
   cudaMemcpy(batch->fftResults, d_fftResults, sizeof(FftResult) * goodVals, cudaMemcpyDeviceToHost);
   
   cudaFree(d_fftResults);
-  //void getFftResults<<<gridSizeInt, blockSizeInt>>>(outputSize, goodIndexes, d_validFrequencies, d_fftResults, outData);
   
-  //bool* h_validFrequencies = (bool*)malloc(sizeof(bool) * outputSize);
-  //cudaMemcpy(h_validFrequencies, d_validFrequencies, sizeof(bool) * outputSize, cudaMemcpyDeviceToHost);
-  
-  /*for (unsigned int i = 0 i < outputSize; i++)
-  {
-    if (h_validFrequencies[i])
-    {
-      
-    }
-  }*/
+  printf("8\r\n");
   
   cudaFree(d_goodIndexes);
   cufftDestroy(plan); 

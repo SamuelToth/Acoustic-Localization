@@ -4,8 +4,16 @@
 //#include <thrust/device_vector.h>
 #include <cuda.h>
 #include <vector>
+#include <cufft.h>
+#include <cufftXt.h>
 
 typedef float decimal;
+
+struct MicData {
+  cufftDoubleComplex** micData;
+  int* waveLengths;
+  int numberOfBatches;
+};
 
 struct Distances {
   decimal* distances;
