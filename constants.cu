@@ -124,48 +124,56 @@ void WaveMatchesToGpu(const WaveMatches& matches, GpuWaveMatches* gpuMatches)
 {
   //allocate memory for the GpuWaveMatches struct
   cudaMalloc(&gpuMatches, sizeof(GpuWaveMatches));
+  GpuWaveMatches* h_gpuMatches = (GpuWaveMatches*)malloc(sizeof(GpuWaveMatches));
   
   //copy the the matches array and all match matrix
   bool** gpuMatchesArray;
   cudaMalloc(&gpuMatchesArray, sizeof(bool*) * matches.matches.size());
+  bool** h_gpuMatchesArray = (bool**)malloc(sizeof(bool*) * matches.matches.size());
+  
   
   for (unsigned int i = 0; i < matches.matches.size(); i++)
   {
     bool* gpuMatchMatrix;
     cudaMalloc(&gpuMatchMatrix, sizeof(bool) * matches.widths[i] * matches.heights[i]);
     cudaMemcpy(gpuMatchMatrix, matches.matches[i], sizeof(bool) * matches.widths[i] * matches.heights[i], cudaMemcpyHostToDevice);
-    gpuMatchesArray[i] = gpuMatchMatrix;
+    h_gpuMatchesArray[i] = gpuMatchMatrix;
   }
-  gpuMatches->matches = gpuMatchesArray;
-  gpuMatches->matchesCount = matches.matches.size();
+  
+  cudaMemcpy(gpuMatchesArray, h_gpuMatchesArray, sizeof(bool*) * matches.matches.size(), cudaMemcpyHostToDevice);
+  h_gpuMatches->matches = gpuMatchesArray;
+  h_gpuMatches->matchesCount = matches.matches.size();
   
   //copy the stored widths
   unsigned int* gpuWidths;
   cudaMalloc(&gpuWidths, sizeof(unsigned int) * matches.widths.size());
   cudaMemcpy(gpuWidths, &matches.widths[0], sizeof(unsigned int) * matches.widths.size(), cudaMemcpyHostToDevice);
-  gpuMatches->widths = gpuWidths;
-  gpuMatches->widthsCount = matches.widths.size();
+  h_gpuMatches->widths = gpuWidths;
+  h_gpuMatches->widthsCount = matches.widths.size();
   
   //copy the stored heights
   unsigned int* gpuHeights;
   cudaMalloc(&gpuHeights, sizeof(unsigned int) * matches.heights.size());
   cudaMemcpy(gpuHeights, &matches.heights[0], sizeof(unsigned int) * matches.heights.size(), cudaMemcpyHostToDevice);
-  gpuMatches->heights = gpuHeights;
-  gpuMatches->heightsCount = matches.heights.size();
+  h_gpuMatches->heights = gpuHeights;
+  h_gpuMatches->heightsCount = matches.heights.size();
   
   //copy stored widthBatches
   int* gpuWidthBatches;
   cudaMalloc(&gpuWidthBatches, sizeof(int) * matches.widthBatches.size());
   cudaMemcpy(gpuWidthBatches, &matches.widthBatches[0], sizeof(int) * matches.widthBatches.size(), cudaMemcpyHostToDevice);
-  gpuMatches->widthBatches = gpuWidthBatches;
-  gpuMatches->widthBatchesCount = matches.widthBatches.size();
+  h_gpuMatches->widthBatches = gpuWidthBatches;
+  h_gpuMatches->widthBatchesCount = matches.widthBatches.size();
   
   //copy stored heightBatches
   int* gpuHeightBatches;
   cudaMalloc(&gpuHeightBatches, sizeof(int) * matches.heightBatches.size());
   cudaMemcpy(gpuHeightBatches, &matches.heightBatches[0], sizeof(int) * matches.heightBatches.size(), cudaMemcpyHostToDevice);
-  gpuMatches->heightBatches = gpuHeightBatches;
-  gpuMatches->heightBatchesCount = matches.heightBatches.size();
+  h_gpuMatches->heightBatches = gpuHeightBatches;
+  h_gpuMatches->heightBatchesCount = matches.heightBatches.size();
+  
+  
+  cudaMemcpy(gpuMatches, h_gpuMatches, sizeof(GpuWaveMatches), cudaMemcpyHostToDevice);
 }
 #endif
 
