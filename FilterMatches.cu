@@ -312,24 +312,36 @@ void filterMatches(FftBatch* batches,
                    WavePairContainer* wavePairContainers,
                    unsigned int containerCount)
 {
+
+
+
   //Create a histogram for each WaveMatch width
   unsigned int** d_matchHistograms;
+  unsigned int** h_matchHistograms = (unsigned int**)malloc(sizeof(unsigned int*) * batchCount);
   cudaMalloc(&d_matchHistograms, sizeof(unsigned int*) * batchCount);
   for (unsigned int i = 0; i < batchCount; i++)
   {
+    printf("HALP PLS\r\n");
     unsigned int* d_matchHistogram;
     cudaMalloc(&d_matchHistogram, sizeof(unsigned int) * batches[i].size);
     cudaMemset(d_matchHistogram, 0, sizeof(unsigned int) * batches[i].size);
-    d_matchHistograms[i] = d_matchHistogram;
+    
+    h_matchHistograms[i] = d_matchHistogram;
+    cudaMemcpy(d_matchHistograms, h_matchHistograms, sizeof(unsigned int) * batchCount, cudaMemcpyHostToDevice);
+    //d_matchHistograms[i] = d_matchHistogram;
   }
+  
+  printf("a\r\n");
   
   GpuWaveMatches* d_waveMatches;
   filterForTriples(*allMatches, d_matchHistograms, d_waveMatches);
   
-  
+  printf("b\r\n");
 
   //free device waveMatches
   freeGpuWaveMatches(d_waveMatches);
+  
+  printf("c\r\n");
   
   //free histogram memory
   for (unsigned int i = 0; i < batchCount; i++)

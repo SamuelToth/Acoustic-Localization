@@ -129,7 +129,7 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
 
   
   int goodVals = thrust::reduce(h_validFrequencies, h_validFrequencies + outputSize - 1);
-
+  free(h_validFrequencies);
   
   FftResult* d_fftResults;
   cudaMalloc(&d_fftResults, sizeof(FftResult) * goodVals);
