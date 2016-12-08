@@ -125,7 +125,7 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
 
 
   int* goodIndexes = (int*)malloc(sizeof(int) * outputSize);
-  thrust::exclusive_scan(h_validFrequencies, h_validFrequencies + outputSize - 1, goodIndexes);
+  thrust::exclusive_scan(h_validFrequencies, h_validFrequencies + outputSize, goodIndexes);
 
   
   int goodVals = thrust::reduce(h_validFrequencies, h_validFrequencies + outputSize - 1);
