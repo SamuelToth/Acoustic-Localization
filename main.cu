@@ -91,13 +91,19 @@ int main() {
     getFftBatch(&fftBatches[i], h_micData.micData[i]);//TODO: this must take a size parameter if batches can have different sizes
   }
 
+  printf("4\r\n");  
+  
   //find all matches across FFT batches
   WaveMatches matches = findAllMatches(fftBatches, h_micData.numberOfBatches);
+  
+  printf("5\r\n");
+  
   
   //allocate memory for wave pair containers
   WavePairContainer* wavePairContainers;
   wavePairContainers = (WavePairContainer*)malloc(sizeof(WavePairContainer) * matches.matches.size());
   
+  printf("6\r\n");
   
   //Filter matches into wavePairContainers
   filterMatches(fftBatches,

@@ -93,7 +93,7 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   thrust::host_vector<double> fftReals(outputSize);
   //double* fftReals = (double*)malloc(sizeof(double) * outputSize);
  
-  printf("2\r\n");
+
  
   double rawSum = 0;
   for (unsigned int i = 0; i < outputSize; i++)
@@ -102,7 +102,7 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
     fftReals[i] = rawFft[i].x;
   }
   
-  printf("3\r\n");
+
   double rawAverage = rawSum / outputSize;
   
   thrust::device_vector<double> d_fftReals(fftReals);
@@ -112,13 +112,12 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   cudaMalloc(&d_validFrequencies, sizeof(bool) * outputSize);
   
 
-  printf("4\r\n");
   
   int blockSizeInt = 1024;
   int gridSizeInt = outputSize / 1024 + 1;
   trueIfGreater<<<gridSizeInt, blockSizeInt>>>(d_validFrequencies, thrust::raw_pointer_cast(d_fftReals.data()), outputSize, rawAverage * 5);
   
-  printf("5 %i\r\n", outputSize);
+
   
   bool* h_validFrequencies = (bool*) malloc(sizeof(bool) * outputSize); 
   cudaMemcpy(h_validFrequencies, d_validFrequencies, sizeof(bool) * outputSize, cudaMemcpyDeviceToHost);
@@ -135,7 +134,6 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   FftResult* d_fftResults;
   cudaMalloc(&d_fftResults, sizeof(FftResult) * goodVals);
   
-    printf("6\r\n");
   
   batch->size = goodVals;
   batch->fftResults = (FftResult*)malloc(sizeof(FftResult) * goodVals);
@@ -144,15 +142,12 @@ int getFftBatch(FftBatch* batch, cufftDoubleComplex* h_data)
   cudaMalloc(&d_goodIndexes, sizeof(int) * outputSize);
   cudaMemcpy(d_goodIndexes, goodIndexes, sizeof(int) * outputSize, cudaMemcpyHostToDevice);
   
-  printf("7\r\n");
-  
+
   getFftResults<<<gridSizeInt, blockSizeInt>>>(outputSize, d_goodIndexes,d_validFrequencies, d_fftResults, outData);
   
   cudaMemcpy(batch->fftResults, d_fftResults, sizeof(FftResult) * goodVals, cudaMemcpyDeviceToHost);
   
   cudaFree(d_fftResults);
-  
-  printf("8\r\n");
   
   cudaFree(d_goodIndexes);
   cufftDestroy(plan); 
