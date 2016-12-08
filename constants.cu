@@ -174,6 +174,7 @@ void WaveMatchesToGpu(const WaveMatches& matches, GpuWaveMatches* gpuMatches)
   
   
   cudaMemcpy(gpuMatches, h_gpuMatches, sizeof(GpuWaveMatches), cudaMemcpyHostToDevice);
+  //TODO: free host memory;
 }
 #endif
 
