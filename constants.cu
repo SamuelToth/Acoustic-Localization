@@ -6,6 +6,7 @@
 #include <vector>
 #include <cufft.h>
 #include <cufftXt.h>
+#include <stdio.h>
 
 typedef float decimal;
 
@@ -109,12 +110,13 @@ void freeGpuWaveMatches(GpuWaveMatches* gpuMatches)
   
   for (unsigned int i = 0; i < h_gpuMatches->matchesCount; i++)
   {
-    cudaFree(h_gpuMatches->matches[i]);
+    cudaFree(&h_gpuMatches->matches[i]);
   }
-  cudaFree(h_gpuMatches->widths);
-  cudaFree(h_gpuMatches->heights);
-  cudaFree(h_gpuMatches->widthBatches);
-  cudaFree(h_gpuMatches->heightBatches);
+  printf("stuff n things\r\n"); fflush(NULL);
+  cudaFree(&h_gpuMatches->widths);
+  cudaFree(&h_gpuMatches->heights);
+  cudaFree(&h_gpuMatches->widthBatches);
+  cudaFree(&h_gpuMatches->heightBatches);
   
   free(h_gpuMatches);
   cudaFree(gpuMatches);

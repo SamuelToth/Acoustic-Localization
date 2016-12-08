@@ -348,14 +348,14 @@ void filterMatches(FftBatch* batches,
   printf("b\r\n");
 
   //free device waveMatches
-  freeGpuWaveMatches(d_waveMatches);
+  //freeGpuWaveMatches(d_waveMatches);
   
   printf("c\r\n");
   
   //free histogram memory
   for (unsigned int i = 0; i < batchCount; i++)
   {
-    cudaFree(d_matchHistograms[i]);
+    cudaFree(&d_matchHistograms[i]);
   }
   cudaFree(d_matchHistograms);
 }
