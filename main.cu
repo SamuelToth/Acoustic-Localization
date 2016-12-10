@@ -9,6 +9,7 @@
 #include "FilterMatches.cu"
 #include "fftWork.cu"
 
+#include <stdio.h>
 #include <cufft.h>
 #include <cufftXt.h>
 #include <cufftw.h>
@@ -26,7 +27,7 @@ MicData generateData()
 {
   //create array of batches(microphones)
   int numberOfBatches = -1;
-  std::cout<<"Number of microphones: ";
+  std::cout<<"Number of microphones(must be at least 3): ";
   std::cin>>numberOfBatches;
 
   cufftDoubleComplex** micDataArray = (cufftDoubleComplex**)malloc(sizeof(cufftDoubleComplex*)*numberOfBatches);
@@ -111,6 +112,28 @@ int main() {
                 &matches,
                 wavePairContainers,
                 matches.matches.size());
+  
+  //h_micData.numberOfBatches
+  
+  GpuWaveMatches* d_gpuWaveMatches;
+  WaveMatchesToGpu(matches, d_gpuWaveMatches);
+  printf("Has not died yet\r\n");fflush(NULL);
+  findWavePairs(fftBatches,
+              h_micData.numberOfBatches,
+              d_gpuWaveMatches,
+              wavePairContainers);
+                
+  
+  for (unsigned int i = 0; i < matches.matches.size(); i++)
+  {
+    for (unsigned int j = 0; j < wavePairContainers[i].wavePairCount; j++)
+    {
+      std::cout << "Mic: "<< wavePairContainers[i].firstFFT
+        << ", and Mic: "<< wavePairContainers[i].secondFFT
+        <<" -- frequency: " << 2 * wavePairContainers[i].wavePairArray[j].waveIdx1
+        << "-" << 2 * wavePairContainers[i].wavePairArray[j].waveIdx2 << std::endl;
+    }
+  }
   
  
   for(int i=0; i<h_micData.numberOfBatches; i++){
